@@ -11,7 +11,20 @@ const agriLandInput = document.getElementById('agri-land-input');
 const insuredLandInput = document.getElementById('insured-land-input');
 const tallyFormContainer = document.getElementById('tally-form-container');
 
+const gpsAccordionItem = document.querySelector('.accordion-item:first-child');
+const householdAccordionItem = document.querySelector('.accordion-item:nth-child(2)');
+
 let hhData = new Map();
+
+// Helper function to set accordion content maxHeight
+function setAccordionMaxHeight(accordionItem) {
+    const accordionContent = accordionItem.querySelector('.accordion-content');
+    if (accordionItem.classList.contains('active')) {
+        accordionContent.style.maxHeight = accordionContent.scrollHeight + 'px';
+    } else {
+        accordionContent.style.maxHeight = 0;
+    }
+}
 
 // Fetch and parse CSV
 fetch('crigps.csv')
@@ -45,11 +58,11 @@ const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.
 });
 
 const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    attribution: 'Tiles &copy; Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 });
 
 const hybridLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+    attribution: 'Tiles &copy; Esri — Esri, DeLorme, NAVTEQ'
 });
 
 
@@ -80,6 +93,12 @@ function updateMarker(latlng) {
     }
     map.setView(latlng, map.getZoom() < 13 ? 13 : map.getZoom());
     updateCoordDisplays(latlng.lat, latlng.lng);
+
+    // Automatically open Household Information accordion
+    if (!householdAccordionItem.classList.contains('active')) {
+        householdAccordionItem.classList.add('active');
+        setAccordionMaxHeight(householdAccordionItem);
+    }
 }
 
 function updateCoordDisplays(lat, lng) {
@@ -145,16 +164,12 @@ function validateHH_ID() {
     if (hhData.has(hh_id)) {
         hhIdInput.style.border = '2px solid green';
         const data = hhData.get(hh_id);
-        hhIdInfo.innerHTML = `
-            <p><strong>Name:</strong> ${data.name}</p>
-            <p><strong>SHG:</strong> ${data.shg}</p>
-            <p><strong>AC:</strong> ${data.ac}</p>
-            <p><strong>Upazila:</strong> ${data.upazila}</p>
-        `;
+        hhIdInfo.innerHTML = `\n            <p><strong>Name:</strong> ${data.name}</p>\n            <p><strong>SHG:</strong> ${data.shg}</p>\n            <p><strong>AC:</strong> ${data.ac}</p>\n            <p><strong>Upazila:</strong> ${data.upazila}</p>\n        `;
     } else {
         hhIdInput.style.border = '2px solid red';
         hhIdInfo.innerHTML = '';
     }
+    setAccordionMaxHeight(householdAccordionItem); // Recalculate height after content change
     checkAllFieldsValid();
 }
 
@@ -204,6 +219,24 @@ function checkAllFieldsValid() {
     }
 }
 
+// Accordion functionality
+document.querySelectorAll('.accordion-header').forEach(header => {
+    header.addEventListener('click', () => {
+        const accordionItem = header.parentElement;
+        
+        // Close all other accordions (except the one being clicked)
+        document.querySelectorAll('.accordion-item').forEach(item => {
+            if (item !== accordionItem && item.classList.contains('active')) {
+                item.classList.remove('active');
+                setAccordionMaxHeight(item);
+            }
+        });
+
+        accordionItem.classList.toggle('active');
+        setAccordionMaxHeight(accordionItem);
+    });
+});
+
 gotoButton.addEventListener('click', onGoToButtonClick);
 map.on('locationfound', onLocationFound);
 map.on('locationerror', onLocationError);
@@ -227,6 +260,12 @@ window.addEventListener('load', () => {
         fsNameSpan.textContent = responsibleFS;
     } else {
         getAndSaveFSName();
+    }
+
+    // Open the first accordion item by default
+    if (gpsAccordionItem) {
+        gpsAccordionItem.classList.add('active');
+        setAccordionMaxHeight(gpsAccordionItem);
     }
 });
 
